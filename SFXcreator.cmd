@@ -19,23 +19,23 @@ if (!$env:1) { timeout -1; return }
 
 ## Choice text - &x is optional hotkey toggle         # Choice value       # Default:1
   $c  = @()                                           ; $v  = @()          ; $d  = @()
-  $c += '&1  Split Decryption Key from file          '; $v += 'password'   ; $d += 0
-  $c += '&2  Enable custom TAGs (Default: DATA)      '; $v += 'tags'       ; $d += 0
-  $c += '&3  BAT85 encoder (+1.7% size of BAT91)     '; $v += 'bat85'      ; $d += 0
-  $c += '&4  Short lines (more overall lines)        '; $v += 'shortlines' ; $d += 0
-  $c += '&5  No LZX compression (on tiny/dense files)'; $v += 'nocompress' ; $d += 0
-  $c += '&6  Set Output Filename                     '; $v += 'altoutput'  ; $d += 0
-  $c += '&7  Run executable after decryption         '; $v += 'execafter'  ; $d += 0
+  $c += '&1  Split Decryption Key from file          '; $v += 'SplitPass'  ; $d += 0
+  $c += '&2  Enable custom TAGs (Default: DATA)      '; $v += 'CustomTAGs' ; $d += 0
+  $c += '&3  BAT85 encoder (+1.7% size of BAT91)     '; $v += 'BAT85'      ; $d += 0
+  $c += '&4  Short lines (more overall lines)        '; $v += 'ShortLines' ; $d += 0
+  $c += '&5  No LZX compression (on tiny/dense files)'; $v += 'NoCompress' ; $d += 0
+  $c += '&6  Set Output Filename                     '; $v += 'OutputName' ; $d += 0
+  $c += '&7  Run executable after decryption         '; $v += 'ExecAfter'  ; $d += 0
 ## Show Choices dialog snippet - outputs $result with indexes like '1,2,4'
   $all=$c -join ',';$def=(($d -split "`n")|Select-String 1).LineNumber -join ',';$choices=@();$selected=@($false)*($c.length+1)
   $result = Choices $all $def 'OPTIONS:' 12
 ## Test individual choices presence via ($choices -eq 'value') or ($selected[number])
   if ($result) {$result -split ',' |% {$selected[$_-0] = $true; $choices += $v[$_-1]}}
 ## Quit if canceled
-  if ($result -eq $null) {write-host "`n Canceled `n" -fore Yellow; return} else {write-host "$($choices -join ',')`n"}
+  if ($result -eq $null) {write-host "`n Canceled `n" -fore Yellow; return} else {$opt=$($choices -join ','); If($opt -eq ''){$opt='Default'}; write-host "Options: $opt`n"}
 ## Choice 3: BAT85 encoder instead of BAT91 for ~1.7% more size, but will not use web-problematic chars <*`%\>
   $key = '!#$%&()*+,-./0123456789;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~'; $chars = 91
-  if ($choices -eq 'bat85') {
+  if ($choices -eq 'BAT85') {
     $key = '.,;{-}[+](/)_|^=?1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$&~'; $chars = 85
   }
   $dict = ($key.ToCharArray()|sort -unique) -join ''; $randomized = 'default'
@@ -44,7 +44,7 @@ if (!$env:1) { timeout -1; return }
   while ($i -lt $chars) {$t = $base[$i]; $j = $rnd.Next($i, $chars); $base[$i] = $base[$j]; $base[$j] = $t; $i++}
   $key = $base -join ''; $randomized = 'randomized'
 ## Choice 1: Show InputBox to accept or change the decoding key, and verify it matches the BAT91 or BAT85 $dict
-  if ($choices -eq 'password') {
+  if ($choices -eq 'SplitPass') {
     Add-Type -As 'Microsoft.VisualBasic'
     $key = [Microsoft.VisualBasic.Interaction]::InputBox("Press enter to accept $randomized key:", 'BAT'+$chars, $key)
     if (!$key -or $key.Trim().Length -ne $chars -or (($key.Trim().ToCharArray()|sort -unique) -join '') -ne $dict) {
@@ -72,14 +72,14 @@ if (!$env:1) { timeout -1; return }
     if ($f.PSTypeNames -match 'FileInfo') {$files += $f} else {dir -lit $f -rec -force |? {!$_.PSIsContainer} |% {$files += $_}}
   }
 ## Choice 2: Set custom TAGs
-  if ($choices -eq 'tags') {
+  if ($choices -eq 'CustomTAGs') {
   Add-Type -As 'Microsoft.VisualBasic'
   $tag = [Microsoft.VisualBasic.Interaction]::InputBox("Press enter to use default TAG:", 'Enter a TAG', 'DATA')
   }
   if ($tag -eq ''){$tag=$null}
   if ($tag -eq $null){$tag='DATA'}
 ## Choice 6: Set Output Filename
-  if ($choices -eq 'altoutput') {
+  if ($choices -eq 'OutputName') {
     Add-Type -As 'Microsoft.VisualBasic'
     $altoutput = [Microsoft.VisualBasic.Interaction]::InputBox("Enter output filename:", 'Set Filename',"$fn1~.cmd")
   }
@@ -104,11 +104,11 @@ if (!$env:1) { timeout -1; return }
   }
   [IO.File]::WriteAllText("$work\1.ddf", $ddf1, [Text.Encoding]::UTF8)
 ## Choice 5: No LZX compression (full size)
-  if ($choices -eq 'nocompress') {$comp = 'OFF'} else {$comp = 'ON'}
+  if ($choices -eq 'NoCompress') {$comp = 'OFF'} else {$comp = 'ON'}
 ## Run MakeCab to either just store the files without compression or use LZX
   makecab.exe /F 1.ddf /D Compress=$comp /D CabinetNameTemplate=1.cab
 ## Choice 7: Execute command after decoding
-  if ($choices -eq 'execafter') {
+  if ($choices -eq 'ExecAfter') {
     Add-Type -As 'Microsoft.VisualBasic'
 	$execafter=[Microsoft.VisualBasic.Interaction]::InputBox("*Arguments will be passed to executable*", 'Enter executable name: ',"$fn2")
 	If ($execafter -eq ''){$execafter=$null}
@@ -116,7 +116,7 @@ if (!$env:1) { timeout -1; return }
 ## Generate text decoding header - compact self-expanding batch file for bundled ascii encoded cab archive of target files
   $HEADER  = "@ECHO OFF&SET _= %*&PUSHD `"%~dp0`"&MODE 35,3&ECHO.&ECHO  Extracting Files, Please Wait...`r`n"
   $HEADER +='>nul 2>&1 POWERSHELL -nop -c "$w=Add-Type -Name WAPI -PassThru -MemberDefinition ''[DllImport(\"user32.dll\")]public static extern void SetProcessDPIAware();[DllImport(\"shcore.dll\")]public static extern void SetProcessDpiAwareness(int value);[DllImport(\"kernel32.dll\")]public static extern IntPtr GetConsoleWindow();[DllImport(\"user32.dll\")]public static extern void GetWindowRect(IntPtr hwnd, int[] rect);[DllImport(\"user32.dll\")]public static extern void GetClientRect(IntPtr hwnd, int[] rect);[DllImport(\"user32.dll\")]public static extern void GetMonitorInfoW(IntPtr hMonitor, int[] lpmi);[DllImport(\"user32.dll\")]public static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);[DllImport(\"user32.dll\")]public static extern int SetWindowPos(IntPtr hwnd, IntPtr hwndAfterZ, int x, int y, int w, int h, int flags);'';$PROCESS_PER_MONITOR_DPI_AWARE=2;try {$w::SetProcessDpiAwareness($PROCESS_PER_MONITOR_DPI_AWARE)} catch {$w::SetProcessDPIAware()}$hwnd=$w::GetConsoleWindow();$moninf=[int[]]::new(10);$moninf[0]=40;$MONITOR_DEFAULTTONEAREST=2;$w::GetMonitorInfoW($w::MonitorFromWindow($hwnd, $MONITOR_DEFAULTTONEAREST), $moninf);$monwidth=$moninf[7] - $moninf[5];$monheight=$moninf[8] - $moninf[6];$wrect=[int[]]::new(4);$w::GetWindowRect($hwnd, $wrect);$winwidth=$wrect[2] - $wrect[0];$winheight=$wrect[3] - $wrect[1];$x=[int][math]::Round($moninf[5] + $monwidth / 2 - $winwidth / 2);$y=[int][math]::Round($moninf[6] + $monheight / 2 - $winheight / 2);$SWP_NOSIZE=0x0001;$SWP_NOZORDER=0x0004;exit [int]($w::SetWindowPos($hwnd, [IntPtr]::Zero, $x, $y, 0, 0, $SWP_NOSIZE -bOr $SWP_NOZORDER) -eq 0)">nul'+"`r`n"
-  if ($choices -eq 'password') {
+  if ($choices -eq 'SplitPass') {
   $HEADER += '@SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';If([System.IO.File]::Exists(''%~dpn0.key'')){$ik=GC ''%~dpn0.key'' -raw};iex($f[1]); X(1)>nul'
   } else {
   $HEADER += '@SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';iex($f[1]); X(1)>nul'
@@ -127,16 +127,16 @@ if (!$env:1) { timeout -1; return }
 	$HEADER += "&START `"`" `"$execafter`" %_:`"=`"`"%&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
   }
 ## Choice 4: Long lines (less overhead) - each line has 4 extra chars (cr lf ::) and short lines are ~8 times as many
-  if ($choices -eq 'shortlines') {$line = 128} else {$line = 1016}
-## Choice 1: Input decoding key as password - or bundle it with the file for automatic extraction
-  if ($choices -eq 'password') {
+  if ($choices -eq 'ShortLines') {$line = 128} else {$line = 1016}
+## Choice 1: Split encoding key into separate file - or bundle it with the file for automatic extraction
+  if ($choices -eq 'SplitPass') {
     $HEADER += '$b=''Microsoft.VisualBasic'';Add-Type -As $b;$k=iex "[$b.Interaction]::InputBox('''',''Enter Decryption Key'',''$ik'')";'
     $HEADER += 'if($k.Length-ne'+$chars+'){exit};Add-Type -Ty @' + "'`r`n"
   } else {
     $HEADER += '$k='''+$key+"'; Add-Type -Ty @'`r`n"
   }
 ## Generate text decoding C# snippet depending on Choice 3: BAT85 encoder instead of BAT91 (now default)
-  if ($choices -eq 'bat85') {
+  if ($choices -eq 'BAT85') {
     $HEADER += @'
 using System.IO; public class BAT85 {public static void Dec (ref string[] f, int x, string fo, string key) { unchecked {
 byte[] b85=new byte[256];long n=0;int p=0,q=0,c=255,z=f[x].Length; while (c>0) b85[c--]=85; while (c<85) b85[key[c]]=(byte)c++;
@@ -160,12 +160,14 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
 	$outputkey = $dir + "\$fn1~.key"
   } else {
     $output = $dir + "\$altoutput"
-	$outputkey = $dir + "\$altoutput.key"
+	$altkey = $altoutput -replace ("(\..+)$", '.key')
+	If($altoutput -eq $altkey){$altkey=$altkey+'.key'}
+	$outputkey = $dir + "\$altkey"
   }
   [IO.File]::WriteAllText($output, $HEADER)
   write-host "`nBAT$chars encoding $output ... " -nonew
   $enctimer=new-object Diagnostics.StopWatch; $enctimer.Start()
-  if ($choices -eq 'bat85') {
+  if ($choices -eq 'BAT85') {
     [BAT85]::Enc("$work\1.cab", $output, $key, $line)
   } else {
     [BAT91]::Enc("$work\1.cab", $output, $key, $line)
@@ -173,13 +175,13 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
   $enctimer.Stop()
   write-host "$([math]::Round($enctimer.Elapsed.TotalSeconds,4)) sec"
   [IO.File]::AppendAllText($output, "`r`n:"+$tag+":]`r`n")
-## Choice 1: Input decoding key as password - saving decoding key externally
-  if ($choices -eq 'password') {
+## Choice 1: Save decoding key externally
+  if ($choices -eq 'SplitPass') {
     [IO.File]::WriteAllText($outputkey, $key)
 	if ($altoutput -eq $null -or '') {
     write-host "`ndecoding key saved separately to $fn1~.key" -fore Yellow; write-host "$key`n"
     } else {
-	write-host "`ndecoding key saved separately to $altoutput.key" -fore Yellow; write-host "$key`n"
+	write-host "`ndecoding key saved separately to $altkey" -fore Yellow; write-host "$key`n"
     }
   } else {del $outputkey -force -ea 0 >''}
 ## Done - cleanup $work dir and write timer

@@ -26,6 +26,7 @@ if (!$env:1) { timeout -1; return }
   $c += '&5  No LZX compression (on tiny/dense files)'; $v += 'NoCompress' ; $d += 0
   $c += '&6  Set Output Filename                     '; $v += 'OutputName' ; $d += 0
   $c += '&7  Run executable after decryption         '; $v += 'ExecAfter'  ; $d += 0
+
 ## Show Choices dialog snippet - outputs $result with indexes like '1,2,4'
   $all=$c -join ',';$def=(($d -split "`n")|Select-String 1).LineNumber -join ',';$choices=@();$selected=@($false)*($c.length+1)
   $result = Choices $all $def 'OPTIONS:' 12

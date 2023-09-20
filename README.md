@@ -6,5 +6,5 @@ Custom version, minor changes have been made including; custom
 tag creation, automatic random key generation (per use, embedded
 or separate), detect keyfile and autofill prompt during decryption
 when key is separate and keyfile is present in the same folder, 
-run executable after decompression, and command windows are 
+launch executable after decompression, and command windows are 
 centered on screen.

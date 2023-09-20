@@ -22,7 +22,7 @@ if (!$env:1) { timeout -1; return }
   $c += '&1  Split Decryption Key from file          '; $v += 'password'   ; $d += 0
   $c += '&2  Enable custom TAGs (Default: DATA)      '; $v += 'tags'       ; $d += 0
   $c += '&3  BAT85 encoder (+1.7% size of BAT91)     '; $v += 'bat85'      ; $d += 0
-  $c += '&4  Short lines (more overall lines)        '; $v += 'longlines'  ; $d += 0
+  $c += '&4  Short lines (more overall lines)        '; $v += 'shortlines' ; $d += 0
   $c += '&5  No LZX compression (on tiny/dense files)'; $v += 'nocompress' ; $d += 0
   $c += '&6  Set Output Filename                     '; $v += 'altoutput'  ; $d += 0
   $c += '&7  Run executable after decryption         '; $v += 'execafter'  ; $d += 0

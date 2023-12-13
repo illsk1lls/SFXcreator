@@ -19,13 +19,13 @@ if (!$env:1) { timeout -1; return }
 
 ## Choice text - &x is optional hotkey toggle         # Choice value       # Default:1
   $c  = @()                                           ; $v  = @()          ; $d  = @()
-  $c += '&1  Split Decryption Key from file          '; $v += 'SplitPass'  ; $d += 0
+  $c += '&1  Separate keys (Portable and Permanent)  '; $v += 'SplitPass'  ; $d += 0
   $c += '&2  Enable custom TAGs (Default: DATA)      '; $v += 'CustomTAGs' ; $d += 0
   $c += '&3  BAT85 encoder (+1.7% size of BAT91)     '; $v += 'BAT85'      ; $d += 0
   $c += '&4  Short lines (more overall lines)        '; $v += 'ShortLines' ; $d += 0
   $c += '&5  No LZX compression (on tiny/dense files)'; $v += 'NoCompress' ; $d += 0
   $c += '&6  Set Output Filename                     '; $v += 'OutputName' ; $d += 0
-  $c += '&7  Launch executable after decryption      '; $v += 'ExecAfter'  ; $d += 0
+  $c += '&7  Run command after decryption            '; $v += 'ExecAfter'  ; $d += 0
 
 ## Show Choices dialog snippet - outputs $result with indexes like '1,2,4'
   $all=$c -join ',';$def=(($d -split "`n")|Select-String 1).LineNumber -join ',';$choices=@();$selected=@($false)*($c.length+1)
@@ -111,27 +111,27 @@ if (!$env:1) { timeout -1; return }
 ## Choice 7: Execute command after decoding
   if ($choices -eq 'ExecAfter') {
     Add-Type -As 'Microsoft.VisualBasic'
-	$execafter=[Microsoft.VisualBasic.Interaction]::InputBox("*Arguments will be passed to executable*", 'Enter executable name: ',"$fn2")
+	$execafter=[Microsoft.VisualBasic.Interaction]::InputBox("*Command to execute after extraction*", 'Command: ',"$fn2")
 	If ($execafter -eq ''){$execafter=$null}
   }
 ## Generate text decoding header - compact self-expanding batch file for bundled ascii encoded cab archive of target files
-  $HEADER  = "@ECHO OFF&SET _= %*&PUSHD `"%~dp0`"&MODE 35,3&ECHO.&ECHO  Extracting Files, Please Wait...`r`n"
+  $HEADER  = "@ECHO OFF&PUSHD `"%~dp0`"&MODE 35,3&ECHO.&ECHO  Please Wait...`r`n"
   $HEADER +='>nul 2>&1 POWERSHELL -nop -c "$w=Add-Type -Name WAPI -PassThru -MemberDefinition ''[DllImport(\"user32.dll\")]public static extern void SetProcessDPIAware();[DllImport(\"shcore.dll\")]public static extern void SetProcessDpiAwareness(int value);[DllImport(\"kernel32.dll\")]public static extern IntPtr GetConsoleWindow();[DllImport(\"user32.dll\")]public static extern void GetWindowRect(IntPtr hwnd, int[] rect);[DllImport(\"user32.dll\")]public static extern void GetClientRect(IntPtr hwnd, int[] rect);[DllImport(\"user32.dll\")]public static extern void GetMonitorInfoW(IntPtr hMonitor, int[] lpmi);[DllImport(\"user32.dll\")]public static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);[DllImport(\"user32.dll\")]public static extern int SetWindowPos(IntPtr hwnd, IntPtr hwndAfterZ, int x, int y, int w, int h, int flags);'';$PROCESS_PER_MONITOR_DPI_AWARE=2;try {$w::SetProcessDpiAwareness($PROCESS_PER_MONITOR_DPI_AWARE)} catch {$w::SetProcessDPIAware()}$hwnd=$w::GetConsoleWindow();$moninf=[int[]]::new(10);$moninf[0]=40;$MONITOR_DEFAULTTONEAREST=2;$w::GetMonitorInfoW($w::MonitorFromWindow($hwnd, $MONITOR_DEFAULTTONEAREST), $moninf);$monwidth=$moninf[7] - $moninf[5];$monheight=$moninf[8] - $moninf[6];$wrect=[int[]]::new(4);$w::GetWindowRect($hwnd, $wrect);$winwidth=$wrect[2] - $wrect[0];$winheight=$wrect[3] - $wrect[1];$x=[int][math]::Round($moninf[5] + $monwidth / 2 - $winwidth / 2);$y=[int][math]::Round($moninf[6] + $monheight / 2 - $winheight / 2);$SWP_NOSIZE=0x0001;$SWP_NOZORDER=0x0004;exit [int]($w::SetWindowPos($hwnd, [IntPtr]::Zero, $x, $y, 0, 0, $SWP_NOSIZE -bOr $SWP_NOZORDER) -eq 0)">nul'+"`r`n"
   if ($choices -eq 'SplitPass') {
-  $HEADER += '@SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';If([System.IO.File]::Exists(''%~dpn0.key'')){$ik=GC ''%~dpn0.key'' -raw};iex($f[1]); X(1)>nul'
+  $HEADER += '@CLS&ECHO.&ECHO  Extracting Files...&SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';If((Get-ItemProperty Registry::HKLM\Software\Microsoft\Cryptography\Realtime).PSObject.Properties.Name -contains ''%~n0'') {$k=Get-ItemPropertyValue -Path Registry::HKLM\SOFTWARE\Microsoft\Cryptography\Realtime -Name ''%~n0''} Else {If([System.IO.File]::Exists(''%~dpn0.key'')){$k=GC ''%~dpn0.key'' -raw}};iex($f[1]); X(1)>nul'
   } else {
-  $HEADER += '@SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';iex($f[1]); X(1)>nul'
+  $HEADER += '@CLS&ECHO.&ECHO  Extracting Files...&SET "0=%~f0"&POWERSHELL -nop -c $f=[IO.File]::ReadAllText($env:0)-split'':'+$tag+'\:.*'';iex($f[1]); X(1)>nul'
   }
   if ($execafter -eq $null) {
     $HEADER += "&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
   } else {
-	$HEADER += "&START `"`" `"$execafter`" %_:`"=`"`"%&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
+	$HEADER += "&START `"`" `"$execafter`"&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
   }
 ## Choice 4: Long lines (less overhead) - each line has 4 extra chars (cr lf ::) and short lines are ~8 times as many
   if ($choices -eq 'ShortLines') {$line = 128} else {$line = 1016}
 ## Choice 1: Split encoding key into separate file - or bundle it with the file for automatic extraction
   if ($choices -eq 'SplitPass') {
-    $HEADER += '$b=''Microsoft.VisualBasic'';Add-Type -As $b;$k=iex "[$b.Interaction]::InputBox('''',''Enter Decryption Key'',''$ik'')";'
+    $HEADER += '$b=''Microsoft.VisualBasic'';Add-Type -As $b;If(!$k){$k=iex "[$b.Interaction]::InputBox('''',''Enter Decryption Key'','''')"};'
     $HEADER += 'if($k.Length-ne'+$chars+'){exit};Add-Type -Ty @' + "'`r`n"
   } else {
     $HEADER += '$k='''+$key+"'; Add-Type -Ty @'`r`n"
@@ -158,12 +158,12 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
 ## BAT91 or BAT85 ascii encoding the cab archive of target files
   if ($altoutput -eq $null) {
     $output = $dir + "\$fn1~.cmd";
-	$outputkey = $dir + "\$fn1~.key"
+	$portablekey = $dir + "\$fn1~.key"
   } else {
     $output = $dir + "\$altoutput"
 	$altkey = $altoutput -replace ("(\..+)$", '.key')
 	If($altoutput -eq $altkey){$altkey=$altkey+'.key'}
-	$outputkey = $dir + "\$altkey"
+	$portablekey = $dir + "\$altkey"
   }
   [IO.File]::WriteAllText($output, $HEADER)
   write-host "`nBAT$chars encoding $output ... " -nonew
@@ -178,13 +178,15 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
   [IO.File]::AppendAllText($output, "`r`n:"+$tag+":]`r`n")
 ## Choice 1: Save decoding key externally
   if ($choices -eq 'SplitPass') {
-    [IO.File]::WriteAllText($outputkey, $key)
-	if ($altoutput -eq $null -or '') {
-    write-host "`ndecoding key saved separately to $fn1~.key" -fore Yellow; write-host "$key`n"
-    } else {
-	write-host "`ndecoding key saved separately to $altkey" -fore Yellow; write-host "$key`n"
-    }
-  } else {del $outputkey -force -ea 0 >''}
+    [IO.File]::WriteAllText($portablekey, $key)
+	$pname = ([System.Io.Path]::GetFileNameWithoutExtension($portablekey))
+	$permanentkey = $dir + "\$pname" + '.reg'
+	$rkey=$key.Replace('\','\\')
+	[IO.File]::WriteAllText($permanentkey, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography\Realtime]`r`n`"$pname`"=`"$rkey`"")
+	write-host "`nPortable decoding key saved separately to $portablekey" -fore Yellow;
+	write-host "Permanent decoding key saved separately to $permanentkey" -fore Red;
+	write-host "`n**NOTE** Encoded file name can not be changed if permanent key is used.`n`nKey: $key`n";
+  } else {del $portablekey -force -ea 0 >''}
 ## Done - cleanup $work dir and write timer
   push-location -lit $root; if (test-path -lit $work) {start -nonew -file cmd -args "/d/x/c rmdir /s/q ""$work"">nul 2>nul"}
   $timer.Stop()

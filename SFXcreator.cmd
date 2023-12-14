@@ -158,12 +158,12 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
 ## BAT91 or BAT85 ascii encoding the cab archive of target files
   if ($altoutput -eq $null) {
     $output = $dir + "\$fn1~.cmd";
-	$portablekey = $dir + "\$fn1~.key"
+    $portablekey = $dir + "\$fn1~.key"
   } else {
     $output = $dir + "\$altoutput"
-	$altkey = $altoutput -replace ("(\..+)$", '.key')
-	If($altoutput -eq $altkey){$altkey=$altkey+'.key'}
-	$portablekey = $dir + "\$altkey"
+    $altkey = $altoutput -replace ("(\..+)$", '.key')
+    If($altoutput -eq $altkey){$altkey=$altkey+'.key'}
+    $portablekey = $dir + "\$altkey"
   }
   [IO.File]::WriteAllText($output, $HEADER)
   write-host "`nBAT$chars encoding $output ... " -nonew
@@ -179,13 +179,13 @@ FileStream(fo,FileMode.Create)){for(int i=0;i!=z;i++){c=b91[f[x][i]]; if(c==91)c
 ## Choice 1: Save decoding key externally
   if ($choices -eq 'SplitPass') {
     [IO.File]::WriteAllText($portablekey, $key)
-	$pname = ([System.Io.Path]::GetFileNameWithoutExtension($portablekey))
-	$permanentkey = $dir + "\$pname" + '.reg'
-	$rkey=$key.Replace('\','\\')
-	[IO.File]::WriteAllText($permanentkey, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography\Realtime]`r`n`"$pname`"=`"$rkey`"")
-	write-host "`nPortable decoding key saved separately to $portablekey" -fore Yellow;
-	write-host "Permanent decoding key saved separately to $permanentkey" -fore Red;
-	write-host "`n**NOTE** Encoded file name can not be changed if permanent key is used.`n`nKey: $key`n";
+    $pname = ([System.Io.Path]::GetFileNameWithoutExtension($portablekey))
+    $permanentkey = $dir + "\$pname" + '.reg'
+    $rkey=$key.Replace('\','\\')
+    [IO.File]::WriteAllText($permanentkey, "Windows Registry Editor Version 5.00`r`n`r`n[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography\Realtime]`r`n`"$pname`"=`"$rkey`"")
+    write-host "`nPortable decoding key saved separately to $portablekey" -fore Yellow;
+    write-host "Permanent decoding key saved separately to $permanentkey" -fore Red;
+    write-host "`n**NOTE** Encoded file name can not be changed if permanent key is used.`n`nKey: $key`n";
   } else {del $portablekey -force -ea 0 >''}
 ## Done - cleanup $work dir and write timer
   push-location -lit $root; if (test-path -lit $work) {start -nonew -file cmd -args "/d/x/c rmdir /s/q ""$work"">nul 2>nul"}

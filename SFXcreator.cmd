@@ -111,8 +111,8 @@ if (!$env:1) { timeout -1; return }
 ## Choice 7: Execute command after decoding
   if ($choices -eq 'ExecAfter') {
     Add-Type -As 'Microsoft.VisualBasic'
-	$execafter=[Microsoft.VisualBasic.Interaction]::InputBox("*Command to execute after extraction*", 'Command: ',"$fn2")
-	If ($execafter -eq ''){$execafter=$null}
+    $execafter=[Microsoft.VisualBasic.Interaction]::InputBox("*Command to execute after extraction*", 'Command: ',"$fn2")
+    If ($execafter -eq ''){$execafter=$null}
   }
 ## Generate text decoding header - compact self-expanding batch file for bundled ascii encoded cab archive of target files
   $HEADER  = "@ECHO OFF&PUSHD `"%~dp0`"&MODE 35,3&ECHO.&ECHO  Please Wait...`r`n"
@@ -125,7 +125,7 @@ if (!$env:1) { timeout -1; return }
   if ($execafter -eq $null) {
     $HEADER += "&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
   } else {
-	$HEADER += "&START `"`" `"$execafter`"&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
+    $HEADER += "&START `"`" `"$execafter`"&GOTO :EOF`r`n`r`n:"+$tag+":`r`n"
   }
 ## Choice 4: Long lines (less overhead) - each line has 4 extra chars (cr lf ::) and short lines are ~8 times as many
   if ($choices -eq 'ShortLines') {$line = 128} else {$line = 1016}
